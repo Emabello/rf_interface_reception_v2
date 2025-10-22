@@ -1,0 +1,47 @@
+<mvc:View controllerName="rfinterfacereceptionv2.controller.SecondView"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:ndc="sap.ndc"
+    xmlns:core="sap.ui.core" displayBlock="true"
+    xmlns="sap.m">
+    <Page id="_IDGenPage_1" enableScrolling="true" class="sapUiContentPadding" showHeader="true" showNavButton="true" navButtonPress=".onNavBack">
+        <Panel id="_IDGenPane_2" class="sapUiResponsiveMargin" width="auto">
+            <VBox id="_IDGenVBox_2" class="lineaSeparazione" width="100%">
+                <HBox id="_IDGenHBox_3" alignItems="Center">
+                    <Label id="_IDGenLabel_8" text="{i18n>Order} :" class="labelSpaziata"/>
+                    <Input id="_IDGenInput_8_t" width="100%" type="Number" editable="false"/>
+                </HBox>
+                <HBox id="_IDGenHBox_4" alignItems="Center">
+                    <Label id="_IDGenLabel_3" text="{i18n>EAN} :" class="labelSpaziata"/>
+                    <Input id="_IDGenInput_3_t" width="100%" type="Text" submit="onPress" class="inputHalfScreen" liveChange=".onLiveChange"/>
+                    <ndc:BarcodeScannerButton id="_IDGenBarcodeScannerButton_3" scanSuccess="onScanSuccessOne" scanFail="onScanErrorOne" class="sampleBarcodeScannerButtonWithZebraEB">
+                        <ndc:customData>
+                            <core:CustomData key="inputId" value="_IDGenInput_3_t" />
+                        </ndc:customData>
+                    </ndc:BarcodeScannerButton>
+                </HBox>
+            </VBox>
+        </Panel>
+        <Panel id="_IDGenPane_3" headerText="{i18n>Data}" class="sapUiResponsiveMargin" width="auto">
+            <VBox id="_IDGenVBox_3">
+                <Label id="_IDGenLabel_4" text="{i18n>Article} :"/>
+                <Input id="_IDGenInput_4_t" type="Text" value="{model>/Article}" editable="false" valueState="None" class="whiteInput"/>
+                <Label id="_IDGenLabel_5" text="{i18n>QTY/UM} :"/>
+                <Input id="_IDGenInput_5_t" type="Text" value="{model>/QTY} {model>/UM}" editable="false" valueState="None" class="whiteInput"/>
+                <Label id="_IDGenLabel_6" text="{i18n>Lot} :"/>
+                <Input id="_IDGenInput_6_t" type="Text" value="{model>/Lot}" editable="false"/>
+                <Label id="_IDGenLabel_7" text="{i18n>DDM} :"/>
+                <Input id="_IDGenInput_7_t" type="Text" value="{model>/DDM}" editable="false" valueState="None" class="whiteInput"/>
+            </VBox>
+        </Panel>
+
+        <footer>
+            <OverflowToolbar id="_IDGenOverflowToolbar_2">
+                <ToolbarSpacer id="_IDGenToolbarSpacer_3" />
+                <Button id="_IDGenButton_5" type="Reject" text="" press="onPressReject" ariaDescribedBy="rejectButtonDescription genericButtonDescription"/>
+                <Button id="_IDGenButton_4"  text="" icon="sap-icon://save" press="onSave" />
+                <Button id="_IDGenButton_3" type="Accept" text="" press="onPressAccept" ariaDescribedBy="acceptButtonDescription genericButtonDescription"/>
+                <ToolbarSpacer id="_IDGenToolbarSpacer_4" />
+            </OverflowToolbar>
+        </footer>
+    </Page>
+</mvc:View>

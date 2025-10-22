@@ -1,0 +1,46 @@
+<mvc:View controllerName="rfinterfacereceptionv2.controller.SaveView"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:ndc="sap.ndc"
+    xmlns:core="sap.ui.core" displayBlock="true"
+    xmlns="sap.m">
+    <Page id="_IDGenPage_2" enableScrolling="true" class="sapUiContentPadding" showHeader="true" showNavButton="true" navButtonPress=".onNavBack">
+        <Panel id="_IDGenPane_4" class="sapUiResponsiveMargin" width="auto">
+            <VBox id="_IDGenVBox_4" class="lineaSeparazione" width="100%">
+                <HBox id="_IDGenHBox_5" alignItems="Center">
+                    <Label id="_IDGenLabel_9" text="{i18n>OrderRec} :" class="labelSpaziata"/>
+                    <Input id="_IDGenInput_9_t" width="100%" type="Number" editable="false"/>
+                </HBox>
+            </VBox>
+        </Panel>
+
+        <Panel id="_IDGenPane_5" class="sapUiResponsiveMargin" width="auto">
+            <Table id="itemsTable" items="{model>/items}" inset="false">
+                <columns>
+                    <Column id="_IDGenColumn_1"><Text id="_IDGenText_1" text="Article"/></Column>
+                    <Column id="_IDGenColumn_2"><Text id="_IDGenText_2" text="PAL"/></Column>
+                    <Column id="_IDGenColumn_3"><Text id="_IDGenText_3" text="Quantité"/></Column>
+                    <Column id="_IDGenColumn_4"><Text id="_IDGenText_4" text="Unité A"/></Column>
+                </columns>
+                <items>
+                    <ColumnListItem id="_IDGenColumnListItem">
+                        <cells>
+                            <Text id="_IDGenText_5" text="{model>article}" />
+                            <Text id="_IDGenText_6" text="{model>pal}" />
+                            <Text id="_IDGenText_7" text="{model>qty}" />
+                            <Text id="_IDGenText_8" text="{model>unit}" />
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </Panel>
+
+        <footer>
+            <OverflowToolbar id="_IDGenOverflowToolbar_4">
+                <ToolbarSpacer id="_IDGenToolbarSpacer_5" />
+                <Button id="_IDGenButton_6" type="Reject" text="" press="onPressReject" ariaDescribedBy="rejectButtonDescription genericButtonDescription"/>
+                <Button id="_IDGenButton_7"  text="" icon="sap-icon://save" press="onSave" />
+                <ToolbarSpacer id="_IDGenToolbarSpacer_6" />
+            </OverflowToolbar>
+        </footer>
+    </Page>
+</mvc:View>

@@ -1,0 +1,47 @@
+<mvc:View controllerName="rfinterfacereceptionv2.controller.FirstView"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:sf="sap.ui.comp.smartfield"
+    xmlns:ndc="sap.ndc"
+    xmlns:core="sap.ui.core">
+
+    <Page id="_IDGenPage" showHeader="true" enableScrolling="true" class="sapUiContentPadding" showNavButton="true" navButtonPress=".onNavBack">
+
+        <Panel id="_IDGenPane_1" class="sapUiResponsiveMargin" width="auto">
+            <Title id="_IDGenTitle_1" text="{i18n>title}" level="H4" />
+            <VBox id="_IDGenVBox_1" class="lineaSeparazione" width="100%">
+                <HBox id="_IDGenHBox_1" alignItems="Center">
+                    <Label id="_IDGenLabel_1" text="{i18n>Order} :" class="labelSpaziata"/>
+                    <Input id="_IDGenInput_1_t" width="100%" type="Number" submit="onPress" liveChange=".onLiveChange"/>
+                    <ndc:BarcodeScannerButton id="_IDGenBarcodeScannerButton_1" scanSuccess="onScanSuccessOne" scanFail="onScanErrorOne" class="sampleBarcodeScannerButtonWithZebraEB">
+                        <ndc:customData>
+                            <core:CustomData key="inputId" value="_IDGenInput_1_t" />
+                        </ndc:customData>
+                    </ndc:BarcodeScannerButton>
+                </HBox>
+                
+                <HBox id="_IDGenHBox_2" alignItems="Center">
+                    <Label id="_IDGenLabel_2" text="{i18n>Delnote} :" class="labelSpaziata"/>
+                    <Input id="_IDGenInput_2_t" width="100%" type="Number" submit="onPress"/>
+                    <ndc:BarcodeScannerButton id="_IDGenBarcodeScannerButton_2" scanSuccess="onScanSuccessOne" scanFail="onScanErrorOne" class="sampleBarcodeScannerButtonWithZebraEB">
+                        <ndc:customData>
+                            <core:CustomData key="inputId" value="_IDGenInput_2_t" />
+                        </ndc:customData>
+                    </ndc:BarcodeScannerButton>
+                </HBox>
+            </VBox>
+        </Panel>
+
+        <footer>
+            <OverflowToolbar id="_IDGenOverflowToolbar_1">
+                <ToolbarSpacer id="_IDGenToolbarSpacer_1" />
+                <Button id="_IDGenButton_2" type="Reject" text="" press="onPressReject" ariaDescribedBy="rejectButtonDescription genericButtonDescription"/>
+                <Button id="_IDGenButton_1" type="Emphasized" text="" press="onPress" ariaDescribedBy="acceptButtonDescription genericButtonDescription"/>
+                <ToolbarSpacer id="_IDGenToolbarSpacer_2" />
+            </OverflowToolbar>
+        </footer>
+
+
+    </Page>
+</mvc:View>

@@ -1,0 +1,152 @@
+{
+  "_version": "1.73.1",
+  "sap.app": {
+    "id": "rfinterfacereceptionv2",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "applicationVersion": {
+      "version": "0.0.1"
+    },
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "resources": "resources.json",
+    "sourceTemplate": {
+      "id": "@sap/generator-fiori:basic",
+      "version": "1.19.1",
+      "toolsId": "23c546c4-7c56-438f-af9f-ef1300fc9861"
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "main": {
+          "semanticObject": "RFInterfaceReceptionV2",
+          "action": "display",
+          "title": "{{appTitle}}",
+          "signature": {
+            "parameters": {},
+            "additionalParameters": "allowed"
+          }
+        }
+      }
+    },
+    "dataSources": {
+      "ZSB_PROD_RF_V2_VAN": {
+        "uri": "/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Annotations(TechnicalName='ZSB_PROD_RF_V2_VAN',Version='0001')/$value/",
+        "type": "ODataAnnotation",
+        "settings": {
+          "localUri": "localService/mainService/ZSB_PROD_RF_V2_VAN.xml"
+        }
+      },
+      "mainService": {
+        "uri": "/sap/opu/odata/sap/ZSB_PROD_RF_V2/",
+        "type": "OData",
+        "settings": {
+          "annotations": [
+            "ZSB_PROD_RF_V2_VAN"
+          ],
+          "localUri": "localService/mainService/metadata.xml",
+          "odataVersion": "2.0"
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "icons": {
+      "icon": "",
+      "favIcon": "",
+      "phone": "",
+      "phone@2": "",
+      "tablet": "",
+      "tablet@2": ""
+    },
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "flexEnabled": true,
+    "dependencies": {
+      "minUI5Version": "1.136.8",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {}
+      }
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "rfinterfacereceptionv2.i18n.i18n"
+        }
+      },
+      "": {
+        "dataSource": "mainService",
+        "preload": true,
+        "settings": {}
+      }
+    },
+    "resources": {
+      "css": [
+        {
+          "uri": "css/style.css"
+        }
+      ]
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "controlAggregation": "pages",
+        "controlId": "app",
+        "transition": "slide",
+        "type": "View",
+        "viewType": "XML",
+        "path": "rfinterfacereceptionv2.view",
+        "async": true,
+        "viewPath": "rfinterfacereceptionv2.view"
+      },
+      "routes": [
+        {
+          "name": "RouteFirstView",
+          "pattern": ":?query:",
+          "target": ["TargetFirstView"]
+        },
+        {
+          "name": "RouteSecondView",
+          "pattern": "second",
+          "target": ["TargetSecondView"]
+        },
+        {
+          "name": "RouteSaveView",
+          "pattern": "save",
+          "target": ["TargetSaveView"]
+        }
+      ],
+      "targets": {
+        "TargetFirstView": {
+          "id": "FirstView",
+          "name": "FirstView"
+        },
+        "TargetSecondView": {
+          "id": "SecondView",
+          "name": "SecondView"
+        },
+        "TargetSaveView": {
+          "id": "SaveView",
+          "name": "SaveView"
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "rfinterfacereceptionv2.view.App",
+      "type": "XML",
+      "id": "App",
+      "async": true
+    }
+  }
+}

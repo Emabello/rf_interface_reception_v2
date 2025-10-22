@@ -1,0 +1,15 @@
+.lineaSeparazione {
+    border-bottom: 1px solid #ccc; /* linea grigia sottile */
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+}
+.labelSpaziata {
+    margin-right: 10px; /* spazio di 10px a destra */
+    width: 10rem; /* uniforma tutte le label */
+    min-width: 10rem;
+    display: inline-block;
+}
+.inputHalfScreen * {
+  width: 40vw !important; /* 50% della larghezza viewport */
+}
+  
