@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://sap.github.io/ui5-tooling/schema/ui5.yaml.json
+
+specVersion: "3.1"
+metadata:
+  name: rfinterfacereceptionv2
+type: application
+builder:
+  resources:
+    excludes:
+      - /test/**
+      - /localService/**
+  customTasks:
+    - name: deploy-to-abap
+      afterTask: generateCachebusterInfo
+      configuration:
+        target:
+          destination: ALPINA_DEV
+          url: https://my421637.s4hana.cloud.sap
+          client: '100'
+          authenticationType: reentranceTicket # SAML support for vscode
+        app:
+          name: ZRF_IN_RECEP_V2
+          package: ZFIORI_APPS
+          transport: PBGK900534
+        exclude:
+          - /test/

@@ -1,5 +1,5 @@
 sap.ui.define(
-  ["sap/ui/core/mvc/Controller", "sap/m/MessageBox"],
+  ["sap/ui/core/mvc/Controller", "sap/m/MessageBox", "sap/m/BusyDialog"],
   function (Controller) {
     "use strict";
 
@@ -156,6 +156,7 @@ sap.ui.define(
           },
         });
       },
+
       onSave: function () {
         let payloadList = globalThis.finalPayloadList;
 
@@ -177,6 +178,16 @@ sap.ui.define(
         }
 
         const that = this;
+
+        // Blocca la UI
+        that.getView().setBusy(true);
+
+        let oBusyDialog = new sap.m.BusyDialog({
+          title: "Processing",
+          text: "Starting process... (0%)",
+        });
+        oBusyDialog.open();
+
         const oModel = new sap.ui.model.odata.v2.ODataModel(
           "/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/",
           true
@@ -205,20 +216,20 @@ sap.ui.define(
         const i18n = that.getView().getModel("i18n").getResourceBundle();
 
         mergedPayloadList.forEach((originalPayload) => {
+          let progress = 0;
+
           // STEP 0: Create receipt (101) in MM
           _createReceipt101(originalPayload, oModel, that)
             .then(async (docNumber101) => {
+              oBusyDialog.setText(`Receipt 101 created... (10%)`);
+
               resultsSummary.push({
-                step: i18n.getText("step.receipt101"),
+                step: 1,
                 id: docNumber101.docNumber,
                 year: docNumber101.docNumberYear,
+                result: "X",
               });
 
-              // STEP 1: Get packing instructions
-              //const packingData = await _getPackingInstructions(
-              //  originalPayload,
-              //  oModel
-              //);
               return {
                 docNumber101,
                 originalPayload,
@@ -227,82 +238,91 @@ sap.ui.define(
             .then(async ({ docNumber101, originalPayload }) => {
               // STEP 1.5: Get packing info extra
               const packingData = await _getExtra(docNumber101);
+              oBusyDialog.setText(`Packing instructions retrieved... (20%)`);
+
               return { docNumber101, originalPayload, packingData };
             })
             .then(async ({ docNumber101, originalPayload, packingData }) => {
-              // STEP 2: Create HU
-              const huData = await _createHU(
-                packingData,
-                originalPayload,
-                oModel
-              );
-              resultsSummary.push({
-                step: i18n.getText("step.hu.create"),
-                id: huData.huID,
-              });
-              return { docNumber101, originalPayload, packingData, huData };
-            })
-            .then(
-              async ({
-                docNumber101,
-                originalPayload,
-                packingData,
-                huData,
-              }) => {
+              const numPallets = packingData.data.length;
+
+              const totalPallets = numPallets;
+              let currentProgress = 20; // Partiamo dopo la receipt
+              const maxProgress = 100;
+              const progressRange = maxProgress - currentProgress; // 80%
+
+              for (let i = 0; i < numPallets; i++) {
+                // STEP 2: Create HU
+                const palletProgress = Math.round(
+                  currentProgress + ((i + 1) / totalPallets) * progressRange
+                );
+
+                oBusyDialog.setText(
+                  `Processing pallet ${
+                    i + 1
+                  }/${totalPallets} (${palletProgress}%)`
+                );
+
+                const huData = await _createHU(
+                  packingData.xCsrfToken,
+                  packingData.data[i],
+                  originalPayload.to_MaterialDocumentItem[i]
+                );
+
+                resultsSummary.push({
+                  step: 2,
+                  id: huData.huID,
+                  pallet: i + 1,
+                  result: "X",
+                });
+
                 // STEP 3: Move HU to eWM
                 const moveResult = await _moveHUtoEWM(
-                  packingData,
-                  huData,
-                  oModel
+                  packingData.xCsrfToken,
+                  huData
                 );
+
                 resultsSummary.push({
-                  step: i18n.getText("step.hu.move"),
+                  step: 3,
                   id: moveResult.moveID,
+                  pallet: i + 1,
+                  result: "X",
                 });
-                return {
-                  docNumber101,
-                  originalPayload,
-                  packingData,
-                  huData,
-                  moveResult,
-                };
-              }
-            )
-            .then(
-              async ({
-                docNumber101,
-                originalPayload,
-                packingData,
-                huData,
-                moveResult,
-              }) => {
+
                 // STEP 4: Create eWM task
                 const taskResult = await _createEWMTask(
+                  packingData.xCsrfToken,
                   huData,
                   moveResult,
                   oModel
                 );
+
                 resultsSummary.push({
-                  step: i18n.getText("step.task.create"),
+                  step: 4,
                   id: taskResult.taskID,
+                  hu: huData.huID,
+                  pallet: i + 1,
+                  result: "X",
                 });
-                return {
-                  docNumber101,
-                  originalPayload,
-                  packingData,
-                  huData,
-                  moveResult,
-                  taskResult,
-                };
               }
-            )
+
+              oBusyDialog.setText(`All pallets processed 95%)`);
+              return { docNumber101, originalPayload, packingData };
+            })
             .then(() => {
-              // Tutto completato con successo → popup riepilogativo
-              _onSaveSuccess(that, resultsSummary);
+              oBusyDialog.setText(`Process completed 100%)`);
+
+              setTimeout(() => {
+                oBusyDialog.close();
+                that.getView().setBusy(false);
+
+                _onSaveSuccessError(that, resultsSummary);
+              }, 1000);
             })
             .catch((error) => {
-              // Qualsiasi errore → popup di errore singolo
-              _onSaveError(error, that);
+              oBusyDialog.close();
+              that.getView().setBusy(false);
+
+              _onSaveSuccessError(that, resultsSummary, error);
             });
         });
 
@@ -313,7 +333,6 @@ sap.ui.define(
             receipt101.to_MaterialDocumentItem.forEach((item) => {
               item.GoodsMovementType = "101";
               item.GoodsMovementRefDocType = "B";
-              item.ManufactureDate = receipt101.PostingDate;
             });
 
             oModel.create("/A_MaterialDocumentHeader", receipt101, {
@@ -337,96 +356,6 @@ sap.ui.define(
           });
         }
 
-        // ============ STEP 1: Get Packing Instructions ============
-        //function _getPackingInstructions(payload) {
-        //  return new Promise((resolve, reject) => {
-        //    const firstMaterial = payload.to_MaterialDocumentItem[0];
-        //    const material = firstMaterial.Material;
-        //    const quantity =
-        //      firstMaterial.QuantityInEntryUnit ||
-        //      firstMaterial.QuantityInBaseUnitOfMeasure;
-        //    const unit =
-        //      firstMaterial.EntryUnit || firstMaterial.BaseUnitOfMeasure;
-        //    const batch = firstMaterial.Batch || "";
-        //
-        //    // Costruisci l'URL con filtro e expand
-        //    const url = `/sap/opu/odata/sap/API_PACKINGINSTRUCTION/PackingInstructionComponent?$filter=Material eq '${material}'&$expand=to_PackingInstructionHeader`;
-        //
-        //    const xhr = new XMLHttpRequest();
-        //    xhr.withCredentials = true; // usa la sessione utente SAP
-        //
-        //    xhr.onreadystatechange = function () {
-        //      if (xhr.readyState === 4) {
-        //        if (xhr.status >= 200 && xhr.status < 300) {
-        //          try {
-        //            const response = JSON.parse(xhr.responseText);
-        //            const csrfToken = xhr.getResponseHeader("x-csrf-token");
-        //
-        //            // ✅ Controlliamo se esistono risultati
-        //            const results = response.d?.results || [];
-        //            if (results.length > 0) {
-        //              const packingComponent = results[0];
-        //
-        //              // Estrai dati principali
-        //              const packingMaterial =
-        //                packingComponent.PackingMaterial || "102";
-        //              const packingQty =
-        //                packingComponent.PackingInstructionItmTargetQty ||
-        //                quantity;
-        //              const unitOfMeasure =
-        //                packingComponent.UnitOfMeasure || unit;
-        //              const huType =
-        //                packingComponent.to_PackingInstructionHeader
-        //                  ?.HandlingUnitType || "";
-        //
-        //              // Restituisci oggetto pulito
-        //              resolve({
-        //                materials: payload.to_MaterialDocumentItem,
-        //                packingMaterial: packingMaterial,
-        //                packingQty: packingQty,
-        //                material: material,
-        //                quantity: quantity,
-        //                unit: unitOfMeasure,
-        //                batch: batch,
-        //                huType: huType,
-        //                csrfToken: csrfToken,
-        //              });
-        //            } else {
-        //              reject(
-        //                new Error(
-        //                  `Nessuna istruzione di packaging trovata per il materiale ${material}`
-        //                )
-        //              );
-        //            }
-        //          } catch (err) {
-        //            reject(
-        //              new Error(
-        //                "Errore nel parsing della risposta PackingInstruction: " +
-        //                  err.message
-        //              )
-        //            );
-        //          }
-        //        } else {
-        //          reject(
-        //            new Error(
-        //              `Errore nel recupero delle istruzioni di packaging (${
-        //                xhr.status
-        //              }): ${xhr.statusText || xhr.responseText}`
-        //            )
-        //          );
-        //        }
-        //      }
-        //    };
-        //
-        //    xhr.open("GET", url);
-        //    xhr.setRequestHeader("Accept", "application/json");
-        //    xhr.setRequestHeader("DataServiceVersion", "2.0");
-        //    xhr.setRequestHeader("x-csrf-token", "fetch");
-        //
-        //    xhr.send();
-        //  });
-        //}
-
         // ============ STEP 1.5: Get Extras Packing Instructions ============
         function _getExtra(docNumber101) {
           return new Promise((resolve, reject) => {
@@ -444,17 +373,18 @@ sap.ui.define(
                   const response = JSON.parse(this.responseText);
 
                   resolve({
-                    MaterialDocument: response.d.getPICK.Materialdocument,
-                    MaterialDocumentYear:
-                      response.d.getPICK.Materialdocumentyear,
-                    PackagingMaterial: response.d.getPICK.Packagingmaterial,
-                    HandlingUnitQuantity: response.d.getPICK.Movementquantity,
-                    HandlingUnitQuantityUnit:
-                      response.d.getPICK.Baseunitofmeasure,
-                    Plant: response.d.getPICK.Plant,
-                    StorageLocation: response.d.getPICK.Storagelocation,
-
                     xCsrfToken: xhr.getResponseHeader("x-csrf-token"),
+                    data: response.d.results.map((item) => ({
+                      MaterialDocument: item.Materialdocument,
+                      MaterialDocumentYear: item.Materialdocumentyear,
+                      PackagingMaterial: item.Packagingmaterial,
+                      Packedmaterial: item.Packedmaterial,
+                      HandlingUnitQuantity: item.Movementquantity,
+                      HandlingUnitQuantityUnit: item.Baseunitofmeasure,
+                      Plant: item.Plant,
+                      StorageLocation: item.Storagelocation,
+                      Packingbaseunitofmeasure: item.Packingbaseunitofmeasure,
+                    })),
                   });
                 } else {
                   const msg = JSON.parse(xhr.responseText);
@@ -468,7 +398,7 @@ sap.ui.define(
         }
 
         // ============ STEP 2: Create HU (XHR + CSRF token) ============
-        function _createHU(packingData, originalPayload) {
+        function _createHU(xCsrfToken, packingData, originalPayload) {
           return new Promise((resolve, reject) => {
             // Payload per la creazione HU
             const huPayload = {
@@ -479,15 +409,13 @@ sap.ui.define(
                 {
                   HandlingUnitExternalID: "$1",
                   HandlingUnitTypeOfContent: "1",
-                  Plant: packingData.Plant || "0100",
-                  StorageLocation: packingData.StorageLocation || "ENTB",
-                  Material: originalPayload.to_MaterialDocumentItem[0].Material,
-                  HandlingUnitQuantity: Number(
-                    packingData.HandlingUnitQuantity
-                  ),
+                  Plant: packingData.Plant,
+                  StorageLocation: packingData.StorageLocation,
+                  Material: packingData.Packedmaterial,
+                  HandlingUnitQuantity: 1,
                   HandlingUnitQuantityUnit:
-                    packingData.HandlingUnitQuantityUnit,
-                  Batch: originalPayload.to_MaterialDocumentItem[0].Batch,
+                    packingData.Packingbaseunitofmeasure,
+                  Batch: originalPayload.Batch,
                 },
               ],
             };
@@ -501,7 +429,7 @@ sap.ui.define(
             xhr.open("POST", sUrl);
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.setRequestHeader("Accept", "application/json");
-            xhr.setRequestHeader("x-csrf-token", packingData.xCsrfToken);
+            xhr.setRequestHeader("x-csrf-token", xCsrfToken);
 
             xhr.onreadystatechange = function () {
               if (this.readyState === this.DONE) {
@@ -527,7 +455,7 @@ sap.ui.define(
         }
 
         // ============ STEP 3: Move HU to eWM (XHR + CSRF token) ============
-        function _moveHUtoEWM(packingData, huData) {
+        function _moveHUtoEWM(xCsrfToken, huData) {
           return new Promise((resolve, reject) => {
             const { huID } = huData;
 
@@ -577,7 +505,7 @@ sap.ui.define(
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.setRequestHeader("Accept", "application/json");
             xhr.setRequestHeader("DataServiceVersion", "4.0");
-            xhr.setRequestHeader("x-csrf-token", packingData.xCsrfToken);
+            xhr.setRequestHeader("x-csrf-token", xCsrfToken);
             xhr.setRequestHeader("If-Match", "*");
 
             xhr.send(JSON.stringify(payload));
@@ -586,7 +514,7 @@ sap.ui.define(
 
         // ============ STEP 4: Create eWM Task ============
 
-        function _createEWMTask(huData) {
+        function _createEWMTask(xCsrfToken, huData) {
           return new Promise((resolve, reject) => {
             const { huID, packingData } = huData;
 
@@ -595,9 +523,6 @@ sap.ui.define(
               EWMWarehouse: "WMB0",
               SourceHandlingUnit: huID,
               WarehouseProcessType: "S310",
-              // DestinationStorageType e DestinationStorageBin opzionali
-              // DestinationStorageType: "S970",
-              // DestinationStorageBin: "CL-AREA"
             };
 
             // URL FM 4
@@ -630,29 +555,57 @@ sap.ui.define(
 
             xhr.open("POST", url);
             xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.setRequestHeader("x-csrf-token", packingData.xCsrfToken);
+            xhr.setRequestHeader("x-csrf-token", xCsrfToken);
             xhr.setRequestHeader("If-Match", "*");
             xhr.send(JSON.stringify(taskPayload));
           });
         }
 
         // ============ Success Handler ============
-        function _onSaveSuccess(context, resultsSummary) {
-          const i18n = context.getView().getModel("i18n").getResourceBundle();
+        function _onSaveSuccessError(context, resultsSummary, error = {}) {
+          let reception = "Error";
+          let huCreation = "Error";
+          let transfer = "Error";
+          let taskCreation = "Error";
 
-          const summaryText = resultsSummary
-            .map((r) => `• ${r.step}: ${r.id}`)
-            .join("\n");
+          resultsSummary.forEach((r) => {
+            switch (r.step) {
+              case 1:
+                reception =
+                  r.result === "X" ? `Doc ${r.id || ""}`.trim() : "Error";
+                break;
+              case 2:
+                huCreation = r.result === "X" ? "Succeed" : "Error";
+                break;
+              case 3:
+                transfer = r.result === "X" ? "Succeed" : "Error";
+                break;
+              case 4:
+                taskCreation = r.result === "X" ? "Succeed" : "Error";
+                break;
+            }
+          });
 
-          const message =
-            `${i18n.getText("success.flow.completed.text")}\n\n` +
-            `${i18n.getText("success.flow.documents")}\n${summaryText}`;
+          const i18n = that.getView().getModel("i18n").getResourceBundle();
 
-          sap.m.MessageBox.success(message, {
-            title: i18n.getText("success.flow.completed.title"),
+          let finalMessage = `
+            ${i18n.getText("summary.reception")} : ${reception}
+            ${i18n.getText("summary.huCreation")} : ${huCreation}
+            ${i18n.getText("summary.transfer")} : ${transfer}
+            ${i18n.getText("summary.taskCreation")} : ${taskCreation}
+            `;
+
+          // Se c'è un errore, aggiungi i dettagli
+          if (error && error.message) {
+            finalMessage += `\n${i18n.getText("summary.details")} : ${
+              error.message || "Unknown error"
+            }`;
+          }
+
+          sap.m.MessageBox.success(finalMessage, {
+            title: "Processus terminé",
             actions: [sap.m.MessageBox.Action.OK],
             onClose: function () {
-              // Reset dei dati
               globalThis.readData = {};
               globalThis.finalPayload = {
                 PostingDate: "",
@@ -671,13 +624,6 @@ sap.ui.define(
               const oRouter = sap.ui.core.UIComponent.getRouterFor(context);
               oRouter.navTo("RouteFirstView");
             },
-          });
-        }
-
-        // ============ Error Handler ============
-        function _onSaveError(error, context) {
-          sap.m.MessageBox.error(error.message, {
-            title: "Error",
           });
         }
       },

@@ -198,6 +198,7 @@ sap.ui.define(
                     Qte: oData.getPOEAN.Qte,
                     Batch: oData.getPOEAN.Charg,
                     EntryUnit: oData.getPOEAN.Um,
+                    Date : oData.getPOEAN.Date
                   };
                   oView.setModel(oJSONModelHeader, "model");
 
@@ -228,7 +229,6 @@ sap.ui.define(
         }
 
         if (okBarcode) {
-
           // Se è la prima volta, inizializza la struttura
           if (!globalThis.finalPayloadList) {
             globalThis.finalPayloadList = [];
@@ -289,7 +289,9 @@ sap.ui.define(
         // Resetta il timer
         clearTimeout(this._debounceTimer);
 
-        this.onPress(); // Simula invio dopo inattività
+        this._debounceTimer = setTimeout(() => {
+          this.onPress(); // Simula invio dopo inattività
+        }, 1000); // 1000ms = 1 secondo
       },
 
       onPressAccept: function () {
@@ -306,6 +308,23 @@ sap.ui.define(
 
           MessageBox.error(sText);
         } else {
+
+          const rawDate = globalThis.readData.Date; 
+
+          // Estrai anno, mese e giorno
+          const year = rawDate.substring(0, 4);
+          const month = rawDate.substring(4, 6);
+          const day = rawDate.substring(6, 8);
+
+          // Crea un oggetto Date corretto (attenzione: mese 0-based)
+          const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
+
+          // Format ISO come "YYYY-MM-DDT00:00:00"
+          const yyyy = parsedDate.getFullYear();
+          const mm = String(parsedDate.getMonth() + 1).padStart(2, "0");
+          const dd = String(parsedDate.getDate()).padStart(2, "0");
+          const localDateStr = `${yyyy}-${mm}-${dd}T00:00:00`;
+            
           globalThis.finalPayload.to_MaterialDocumentItem.push({
             PurchaseOrder: globalThis.readData.PurchaseOrder,
             PurchaseOrderItem: globalThis.readData.PurchaseOrderItem,
@@ -317,6 +336,8 @@ sap.ui.define(
             Batch: globalThis.readData.Batch,
             EntryUnit: globalThis.readData.EntryUnit,
             GoodsMovementRefDocType: "B",
+            ShelfLifeExpirationDate : localDateStr,
+            ManufactureDate : globalThis.finalPayload.PostingDate,
           });
 
           globalThis.finalPayloadList.push({ ...globalThis.finalPayload });
@@ -368,6 +389,23 @@ sap.ui.define(
 
           MessageBox.error(sText);
         } else {
+          const rawDate = globalThis.readData.Date; 
+
+          // Estrai anno, mese e giorno
+          const year = rawDate.substring(0, 4);
+          const month = rawDate.substring(4, 6);
+          const day = rawDate.substring(6, 8);
+
+          // Crea un oggetto Date corretto (attenzione: mese 0-based)
+          const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
+
+          // Format ISO come "YYYY-MM-DDT00:00:00"
+          const yyyy = parsedDate.getFullYear();
+          const mm = String(parsedDate.getMonth() + 1).padStart(2, "0");
+          const dd = String(parsedDate.getDate()).padStart(2, "0");
+          const localDateStr = `${yyyy}-${mm}-${dd}T00:00:00`;
+            
+
           globalThis.finalPayload.to_MaterialDocumentItem.push({
             PurchaseOrder: globalThis.readData.PurchaseOrder,
             PurchaseOrderItem: globalThis.readData.PurchaseOrderItem,
@@ -379,6 +417,8 @@ sap.ui.define(
             Batch: globalThis.readData.Batch,
             EntryUnit: globalThis.readData.EntryUnit,
             GoodsMovementRefDocType: "B",
+            ShelfLifeExpirationDate : localDateStr,
+            ManufactureDate : globalThis.finalPayload.PostingDate,
           });
 
           globalThis.finalPayloadList.push({ ...globalThis.finalPayload });

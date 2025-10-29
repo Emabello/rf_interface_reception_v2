@@ -1,0 +1,13 @@
+{
+    "SAP HANA Database Explorer.ShowXsAdvancedConnections": true,
+    "editor.formatOnSave": true,
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[xml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
+}
